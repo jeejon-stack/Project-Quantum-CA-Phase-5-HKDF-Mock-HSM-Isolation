@@ -1,9 +1,20 @@
-# Project-Quantum-CA-Phase-5-HKDF-Mock-HSM-Isolation
-Phase 5 of the  PQC Infrastructure Series. Eliminates shared static secrets via per-node HKDF token derivation (RFC 5869) and seals post-quantum master private keys inside a simulated Hardware Security Module (HSM/PKCS#11) - never exposed to the main process.
-⚠️ Why This Project Exists
+# 🔐 Project Quantum-CA Phase 5: HKDF + Mock HSM Isolation
 
-## Phase 4 had two remaining risks:
+![HKDF](https://img.shields.io/badge/HKDF-RFC_5869-orange?style=flat-square)
+![HSM](https://img.shields.io/badge/Mock_HSM-PKCS%2311-red?style=flat-square)
+![ML-DSA](https://img.shields.io/badge/ML--DSA--65-NIST_FIPS_204-blue?style=flat-square)
+![Isolation](https://img.shields.io/badge/Key_Exposure-ZERO-brightgreen?style=flat-square)
+![Status](https://img.shields.io/badge/All_Checks-PASS-brightgreen?style=flat-square)
 
+> Phase 5 of the  PQC Infrastructure Series. Eliminates shared static secrets via per-node HKDF token derivation (RFC 5869) and seals post-quantum master private keys inside a simulated Hardware Security Module (HSM/PKCS#11) never exposed to the main process.
+
+---
+
+## ⚠️ Why This Project Exists
+
+Phase 4 had two remaining risks:
+
+```
 Risk 1 — Shared static secret:
 ALL nodes use SAME HMAC_SECRET
 One node compromised → attacker has
@@ -14,9 +25,11 @@ Risk 2 — Keys in raw memory:
 Private signing key = Python variable
 in main process scope
 Memory-scraping attack → key stolen ❌
+```
 
 Phase 5 fixes both:
 
+```
 Fix 1: HKDF per-node tokens
 Master seed → HKDF(node_id) → unique token
 Node A compromised → Node B token SAFE ✅
@@ -25,10 +38,13 @@ Fix 2: Mock HSM/PKCS#11
 Private key sealed inside MockHSM class
 Main process only calls sign_via_loopback()
 Never sees raw key material ✅
+```
 
+---
 
 ## Quick Results
 
+```
 HKDF TOKEN ISOLATION:
 Node A token:  unique
 Node B token:  unique — DIFFERENT from A  ✅
@@ -46,7 +62,7 @@ SIGNING VIA LOOPBACK:
 [HSM-LOOPBACK] Private key exposure: ZERO ✅
 
 ALL CHECKS:
-HKDF per-node token derivation:   PASS ✅
+HKDF per-node token derivation:  PASS ✅
 Token isolation (A != B):        PASS ✅
 Cross-node bleed prevention:     PASS ✅
 HSM loopback signing:            PASS ✅
@@ -55,10 +71,13 @@ ML-DSA-65 signature via HSM:     PASS ✅
 Signature verification:          PASS ✅
 CRL revocation check:            PASS ✅
 Memory-only storage:             PASS ✅
+```
 
+---
 
 ## Architecture
 
+```
 MASTER SEED (32 random bytes, rotates)
      |
      |── HKDF(seed, info=node_id) ──► Node A token (unique)
@@ -92,11 +111,14 @@ MOCK HSM ENCLAVE (sealed boundary)
 Main process NEVER sees:
 - self._signer
 - Raw private key material
+```
 
+---
 
 ## Prerequisites
 
-bashpip3 install liboqs-python cryptography --no-cache-dir
+```bash
+pip3 install liboqs-python cryptography --no-cache-dir
 
 python3 -c "
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
@@ -105,17 +127,16 @@ import oqs
 print('HKDF ready!')
 print('ML-DSA-65 ready!')
 "
+```
 
+---
 
-Create cert_engine_secure_hsf.py
+## Create cert_engine_secure_hsf.py
 
+> ⚠️ Use Python heredoc with PYEOF. If `__init__` loses its underscores, fix with:
+> `sed -i 's/def _init_/def __init__/' cert_engine_secure_hsf.py`
 
-⚠️ Use Python heredoc with PYEOF. If __init__ loses its underscores, fix with:
-sed -i 's/def _init_/def __init__/' cert_engine_secure_hsf.py
-
-
-
-bash
+```bash
 python3 << 'PYEOF'
 lines = [
 "import datetime, hashlib, hmac, time, os",
@@ -214,30 +235,46 @@ lines = [
 open('/home/jeejon/quantum-break/cert_engine_secure_hsf.py', 'w').write('\n'.join(lines))
 print('Created!')
 PYEOF
+```
 
+---
 
-Run and Save
+## Run and Save
 
-bashpython3 ~/quantum-break/cert_engine_secure_hsf.py
+```bash
+python3 ~/quantum-break/cert_engine_secure_hsf.py
 
 python3 ~/quantum-break/cert_engine_secure_hsf.py \
   > ~/quantum-break/logs/hsm_audit_log.txt
+```
 
+---
 
 ## Full 8-Phase Bincom PQC Infrastructure Series
 
-PhaseProjectAchievement1PQC Vault Enginemldsa65 cert rotation every 60 min2Quantum BreakAttack simulation + hardening3Zero-Trust MeshX25519 + ML-KEM-768 + PFS4Mutual Auth FrameworkX.509 identity + spoofing deflection5Quantum-CA Lifecycle1-hour ephemeral certs + CRL6Quantum-CA ML-DSANative NIST FIPS 204 signing7Quantum-CA HybridDual-sig + HMAC DoS + MTU/MSS8 (this)Quantum-CA HSMHKDF isolation + hardware key sealing
+| Phase | Project | Achievement |
+|-------|---------|-------------|
+| 1 | PQC Vault Engine | mldsa65 cert rotation every 60 min |
+| 2 | Quantum Break | Attack simulation + hardening |
+| 3 | Zero-Trust Mesh | X25519 + ML-KEM-768 + PFS |
+| 4 | Mutual Auth Framework | X.509 identity + spoofing deflection |
+| 5 | Quantum-CA Lifecycle | 1-hour ephemeral certs + CRL |
+| 6 | Quantum-CA ML-DSA | Native NIST FIPS 204 signing |
+| 7 | Quantum-CA Hybrid | Dual-sig + HMAC DoS + MTU/MSS |
+| 8 (this) | Quantum-CA HSM | HKDF isolation + hardware key sealing |
 
+---
 
-Author
+## Author
 
-Johnson Oni | Supervisor: James Chukwu | July 2026
+**Johnson Oni** | Bincom | Supervisor: James Chukwu | July 2026
 
+---
 
-License
+## License
 
 MIT License
 
+---
 
-
-"A quantum-safe signature signed by a key anyone can steal from memory is not enterprise-grade security. Phase 5 closes that gap."
+> *"A quantum-safe signature signed by a key anyone can steal from memory is not enterprise-grade security. Phase 5 closes that gap."*
